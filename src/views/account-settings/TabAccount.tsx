@@ -1,7 +1,8 @@
 import axios from 'axios'
 
 // ** React Imports
-import { useState, ElementType, ChangeEvent, SyntheticEvent } from 'react'
+import { useState, ElementType, ChangeEvent, SyntheticEvent, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
 
 // ** MUI Imports
 import Box from '@mui/material/Box'
@@ -16,10 +17,12 @@ import AlertTitle from '@mui/material/AlertTitle'
 import IconButton from '@mui/material/IconButton'
 import CardContent from '@mui/material/CardContent'
 import Button, { ButtonProps } from '@mui/material/Button'
+import LoadingButton from '@mui/lab/LoadingButton'
+import SaveIcon from '@mui/icons-material/Save'
 
 // ** Icons Imports
 import Close from 'mdi-material-ui/Close'
-import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from '@mui/material'
+import { FormControl, FormHelperText, InputLabel, MenuItem, Select, SelectChangeEvent } from '@mui/material'
 
 const ImgStyled = styled('img')(({ theme }) => ({
   width: 120,
@@ -56,24 +59,51 @@ type ICustomerProps = {
     postcode: number
     state: string
   }
+  onSave: Function
+  onDelete: Function
 }
 
-const TabAccount = ({ data }: ICustomerProps) => {
+const TabAccount = ({ data, onSave, onDelete }: ICustomerProps) => {
   // ** State
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [openAlert, setOpenAlert] = useState<boolean>(true)
   const [imgSrc, setImgSrc] = useState<string>('/images/avatars/1.png')
-  const [firstName, setFirstName] = useState<string>(data.firstName)
-  const [lastName, setLastName] = useState<string>(data.lastName)
-  const [email, setEmail] = useState<string>(data.email)
   const [address, setAddress] = useState<string>(data.address)
   const [city, setCity] = useState<string>(data.city)
   const [postcode, setPostcode] = useState<number>(data.postcode)
   const [state, setState] = useState<string>(data.state)
 
-  // Handle Select
-  const handleSelectChange = (event: SelectChangeEvent<string>) => {
-    setState(event.target.value)
+  const defaultValues = {
+    id: data.id,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    email: data.email,
+    address: data.address,
+    city: data.city,
+    postcode: data.postcode,
+    state: data.state
   }
+
+  const {
+    register,
+    getValues,
+    handleSubmit,
+    unregister,
+    formState: { errors, isSubmitted },
+    setValue,
+    control,
+    trigger
+  } = useForm({
+    mode: 'onSubmit',
+    reValidateMode: 'onBlur',
+    defaultValues: defaultValues
+  })
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsLoading(false)
+    }, 1000)
+  }, [data])
 
   const onChange = (file: ChangeEvent) => {
     const reader = new FileReader()
@@ -85,24 +115,19 @@ const TabAccount = ({ data }: ICustomerProps) => {
     }
   }
 
-  const handleSubmit = async () => {
-    const payload = {
-      firstName,
-      lastName,
-      email,
-      address,
-      city,
-      postcode,
-      state
-    }
+  const onErrors = (errors: any) => console.error(errors)
+  const onSubmit = () => {
+    onSave && onSave(getValues())
+    setIsLoading(true)
+  }
 
-    const response = await axios.put(`http://localhost:3000/customers/${data.id}`, payload)
-    console.log(response)
+  const handleDelete = (id: string) => {
+    onDelete && onDelete(id)
   }
 
   return (
     <CardContent>
-      <form>
+      <form onSubmit={handleSubmit(onSubmit, onErrors)}>
         <Grid container spacing={7}>
           <Grid item xs={12} sx={{ marginTop: 4.8, marginBottom: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -119,8 +144,8 @@ const TabAccount = ({ data }: ICustomerProps) => {
                   />
                 </ButtonStyled>
 
-                <ResetButtonStyled color='error' variant='outlined' onClick={() => setImgSrc('/images/avatars/1.png')}>
-                  Reset
+                <ResetButtonStyled color='error' variant='outlined' onClick={() => handleDelete(defaultValues.id)}>
+                  Delete Account
                 </ResetButtonStyled>
                 <Typography variant='body2' sx={{ marginTop: 5 }}>
                   Allowed PNG or JPEG. Max size of 800K.
@@ -130,32 +155,58 @@ const TabAccount = ({ data }: ICustomerProps) => {
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label='First Name'
-              placeholder='John'
-              value={firstName}
-              onChange={e => setFirstName(e.target.value)}
-            />
+            <FormControl error={true ? errors.firstName?.type === 'required' : false} variant='standard' fullWidth>
+              <TextField
+                fullWidth
+                label='First Name'
+                placeholder='John'
+                {...register('firstName', { required: true })}
+                onChange={e => setValue('firstName', e.target.value)}
+                error={errors.firstName?.type === 'required' ? true : false}
+              />
+              {errors.firstName?.type === 'required' && (
+                <FormHelperText className='error'>First name is required</FormHelperText>
+              )}
+            </FormControl>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label='Last Name'
-              placeholder='Doe'
-              value={lastName}
-              onChange={e => setLastName(e.target.value)}
-            />
+            <FormControl error={true ? errors.lastName?.type === 'required' : false} variant='standard' fullWidth>
+              <TextField
+                fullWidth
+                label='Last Name'
+                placeholder='Doe'
+                {...register('lastName', { required: true })}
+                onChange={e => setValue('lastName', e.target.value)}
+                error={errors.lastName?.type === 'required' ? true : false}
+              />
+              {errors.lastName?.type === 'required' && (
+                <FormHelperText className='error'>Last name is required</FormHelperText>
+              )}
+            </FormControl>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type='email'
-              label='Email'
-              value={email}
-              placeholder='johnDoe@example.com'
-              onChange={e => setEmail(e.target.value)}
-            />
+            <FormControl error={true ? typeof errors.email !== undefined : false} variant='standard' fullWidth>
+              <TextField
+                fullWidth
+                label='Email'
+                placeholder='johnDoe@example.com'
+                {...register('email', {
+                  required: 'required',
+                  pattern: {
+                    value: /\S+@\S+\.\S+/,
+                    message: 'Invalid email address'
+                  }
+                })}
+                onChange={e => setValue('email', e.target.value)}
+                error={errors.email ? true : false}
+              />
+              {errors.email?.type === 'required' && (
+                <FormHelperText className='error'>Email address is required</FormHelperText>
+              )}
+              {errors.email && errors.email?.type !== 'required' && (
+                <FormHelperText className='error'>{errors.email.message}</FormHelperText>
+              )}
+            </FormControl>
           </Grid>
           <Grid item xs={12}>
             <Divider sx={{ marginBottom: 0 }} />
@@ -170,37 +221,44 @@ const TabAccount = ({ data }: ICustomerProps) => {
               fullWidth
               label='Address'
               placeholder=''
-              value={address}
-              onChange={e => setAddress(e.target.value)}
+              {...register('address')}
+              onChange={e => setValue('address', e.target.value)}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField fullWidth label='City' placeholder='' value={city} onChange={e => setCity(e.target.value)} />
+            <TextField
+              fullWidth
+              label='City'
+              placeholder=''
+              value={city}
+              {...register('city')}
+              onChange={e => setCity(e.target.value)}
+            />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               label='Postcode'
               placeholder=''
-              value={postcode}
-              onChange={e => setPostcode(parseInt(e.target.value))}
+              {...register('postcode')}
+              onChange={e => setValue('postcode', parseInt(e.target.value))}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
-              <InputLabel id='form-layouts-separator-select-label'>State</InputLabel>
-              <Select
+              <TextField
+                fullWidth
                 label='State'
-                value={state}
-                onChange={handleSelectChange}
-                id='form-layouts-separator-select'
-                labelId='form-layouts-separator-select-label'
+                select
+                {...register('state')}
+                onChange={e => setValue('state', e.target.value)}
+                defaultValue={getValues('state')}
               >
                 <MenuItem value='Penang'>Penang</MenuItem>
                 <MenuItem value='Kuala Lumpur'>Kuala Lumpur</MenuItem>
                 <MenuItem value='Perak'>Perak</MenuItem>
                 <MenuItem value='Selangor'>Selangor</MenuItem>
-              </Select>
+              </TextField>
             </FormControl>
           </Grid>
 
@@ -224,12 +282,17 @@ const TabAccount = ({ data }: ICustomerProps) => {
           ) : null}
 
           <Grid item xs={12}>
-            <Button variant='contained' sx={{ marginRight: 3.5 }} onClick={handleSubmit}>
-              Save Changes
-            </Button>
-            <Button type='reset' variant='outlined' color='secondary'>
-              Reset
-            </Button>
+            <LoadingButton
+              loading={true ? isLoading === true : false}
+              loadingPosition='start'
+              startIcon={<SaveIcon />}
+              variant='contained'
+              color='primary'
+              sx={{ marginRight: 3.5 }}
+              type='submit'
+            >
+              Save
+            </LoadingButton>
           </Grid>
         </Grid>
       </form>

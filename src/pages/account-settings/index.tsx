@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // ** React Imports
-import { SyntheticEvent, useState } from 'react'
+import { forwardRef, SyntheticEvent, useState } from 'react'
 
 // ** MUI Imports
 import Box from '@mui/material/Box'
@@ -11,6 +11,9 @@ import TabPanel from '@mui/lab/TabPanel'
 import TabContext from '@mui/lab/TabContext'
 import { styled } from '@mui/material/styles'
 import MuiTab, { TabProps } from '@mui/material/Tab'
+import Snackbar from '@mui/material/Snackbar'
+import Stack from '@mui/material/Stack'
+import MuiAlert, { AlertProps } from '@mui/material/Alert'
 
 // ** Icons Imports
 import AccountOutline from 'mdi-material-ui/AccountOutline'
@@ -46,9 +49,41 @@ const TabName = styled('span')(({ theme }) => ({
 const AccountSettings = ({ customer }: any) => {
   // ** State
   const [value, setValue] = useState<string>('account')
+  const [open, setOpen] = useState(false)
+  const [customerData, setCustomerData] = useState(customer)
+
+  const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(props, ref) {
+    return <MuiAlert elevation={6} ref={ref} variant='filled' {...props} />
+  })
+
+  const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return
+    }
+
+    setOpen(false)
+  }
 
   const handleChange = (event: SyntheticEvent, newValue: string) => {
     setValue(newValue)
+  }
+
+  const updateCustomer = async (data: any) => {
+    const response = await axios.put(`http://localhost:3000/customers/${data.id}`, data)
+
+    if (response.status === 200) {
+      setTimeout(() => {
+        setOpen(true)
+      }, 1000)
+      setCustomerData({ ...response.data })
+    }
+  }
+
+  const deleteCustomer = async (id: string) => {
+    const response = await axios.delete(`http://localhost:3000/customers/${id}`)
+
+    if (response.status === 200) {
+    }
   }
 
   return (
@@ -89,7 +124,15 @@ const AccountSettings = ({ customer }: any) => {
         </TabList>
 
         <TabPanel sx={{ p: 0 }} value='account'>
-          <TabAccount data={customer} />
+          <TabAccount
+            data={customerData}
+            onDelete={(id: string) => {
+              deleteCustomer(id)
+            }}
+            onSave={(data: any) => {
+              updateCustomer(data)
+            }}
+          />
         </TabPanel>
         <TabPanel sx={{ p: 0 }} value='security'>
           <TabSecurity />
@@ -98,6 +141,18 @@ const AccountSettings = ({ customer }: any) => {
           <TabInfo />
         </TabPanel>
       </TabContext>
+      <Stack spacing={2} sx={{ width: '100%' }}>
+        <Snackbar
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          open={open}
+          autoHideDuration={6000}
+          onClose={handleClose}
+        >
+          <Alert onClose={handleClose} severity='success' sx={{ width: '100%' }}>
+            Customer details successfully updated.
+          </Alert>
+        </Snackbar>
+      </Stack>
     </Card>
   )
 }
