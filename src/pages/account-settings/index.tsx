@@ -158,7 +158,7 @@ const AccountSettings = ({ customer }: any) => {
 }
 
 export async function getServerSideProps() {
-  const result = await axios.get('http://localhost:3000/customers/633d1950412174562678bb83')
+  const result = await axios.get('http://localhost:3000/customers/633f89a5c69282eff2597b7e')
 
   if (result.status === 200) {
     return { props: { customer: result.data } }

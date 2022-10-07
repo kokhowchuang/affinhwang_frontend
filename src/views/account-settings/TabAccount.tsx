@@ -59,8 +59,8 @@ type ICustomerProps = {
     postcode: number
     state: string
   }
-  onSave: Function
-  onDelete: Function
+  onSave: any
+  onDelete: any
 }
 
 const TabAccount = ({ data, onSave, onDelete }: ICustomerProps) => {
@@ -230,9 +230,8 @@ const TabAccount = ({ data, onSave, onDelete }: ICustomerProps) => {
               fullWidth
               label='City'
               placeholder=''
-              value={city}
               {...register('city')}
-              onChange={e => setCity(e.target.value)}
+              onChange={e => setValue('city', e.target.value)}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
